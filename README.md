@@ -33,23 +33,23 @@ An intelligent quiz generator that creates multiple-choice quizzes from Wikipedi
    - Push your code to GitHub
    - Go to [railway.app](https://railway.app) and create a new project
    - Connect your GitHub repository
-   - Set the root directory to `backend`
-   - Install dependencies: `pip install -r requirements.txt`
-   - Start command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+   - Set the working directory to `backend` (optional, or keep root)
+   - Install dependencies: `pip install -r backend/requirements.txt` (if root) or `pip install -r requirements.txt` (if backend dir)
+   - Start command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT` (from root) or `python main.py` (from backend)
    - Add environment variables: `GEMINI_API_KEY` (optional)
 
 2. **Render**:
    - Push your code to GitHub
    - Go to [render.com](https://render.com) and create a new Web Service
    - Connect your GitHub repository
-   - Set root directory: `backend`
-   - Build command: `pip install -r requirements.txt`
+   - Set root directory: project root (keep default)
+   - Build command: `pip install -r backend/requirements.txt`
    - Start command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
    - Add environment variables as needed
 
 3. **Heroku**:
    - Install Heroku CLI and login
-   - Create a `Procfile` in the backend directory: `web: uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+   - Create a `Procfile` in the project root: `web: uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
    - Run: `heroku create your-app-name`
    - Set config vars: `heroku config:set GEMINI_API_KEY=your_key`
    - Deploy: `git push heroku main`
