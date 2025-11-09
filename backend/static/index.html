@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Wiki Quiz Generator — Quick Test UI</title>
+  <style>
+    body{background:#242424;color:#eee;font-family:Arial,Helvetica,sans-serif;padding:40px}
+    h1{font-size:48px;margin:0 0 18px}
+    .controls{margin:20px 0}
+    input[type=text]{width:60%;padding:10px;border-radius:6px;border:1px solid #666;background:#2e2e2e;color:#fff}
+    button{padding:10px 14px;border-radius:8px;border:none;background:#111;color:#fff;margin-left:8px}
+    .error{color:#ff4d4d;margin-top:12px}
+    .card{background:#1b1b1b;padding:14px;border-radius:8px;margin-top:12px;border:1px solid #333}
+    .question{margin-bottom:10px}
+    .keywords{opacity:0.8;margin-top:6px}
+  </style>
+</head>
+<body>
+  <h1>AI Wiki Quiz Generator</h1>
+  <div>
+    <button id="tabGenerate">Generate Quiz</button>
+    <button id="tabHistory">History</button>
+  </div>
+
+  <div id="generate" style="margin-top:20px">
+    <form id="gform" onsubmit="return false;">
+      <div class="controls">
+        <input id="url" type="text" placeholder="https://en.wikipedia.org/wiki/Example" />
+        <button id="gen">Generate</button>
+      </div>
+    </form>
+
+    <div id="status" class="error" style="display:none"></div>
+    <div id="result"></div>
+  </div>
+
+  <div id="history" style="display:none;margin-top:20px">
+    <h3>History</h3>
+    <div id="histList">Loading...</div>
+  </div>
+
+<script>
+const BASE = location.origin
+const el = (id)=>document.getElementById(id)
+el('tabGenerate').onclick=()=>{el('generate').style.display='block';el('history').style.display='none'}
+el('tabHistory').onclick=async()=>{el('generate').style.display='none';el('history').style.display='block';await loadHistory()}
+
+async function loadHistory(){
+  try{
+    const res = await fetch(BASE + '/history')
+    if(!res.ok) throw new Error('Failed to load')
+    const data = await res.json()
+    if(!data.length) { el('histList').innerText='No history yet'; return }
+    const table = document.createElement('table')
+    table.style.borderCollapse='collapse'
+    data.forEach(r=>{
+      const tr = document.createElement('tr')
+      tr.innerHTML = `<td style="padding:6px;border-bottom:1px solid #333">${r.id}</td><td style="padding:6px;border-bottom:1px solid #333">${r.title||''}</td><td style="padding:6px;border-bottom:1px solid #333"><a href='#' data-id='${r.id}'>Details</a></td>`
+      table.appendChild(tr)
+    })
+    el('histList').innerHTML=''
+    el('histList').appendChild(table)
+    table.querySelectorAll('a').forEach(a=>a.addEventListener('click', async (e)=>{
+      e.preventDefault(); const id = e.target.dataset.id; showQuiz(id)
+    }))
+  }catch(err){el('histList').innerText = 'Failed to load history'}
+}
+
+async function showQuiz(id){
+  try{
+    const res = await fetch(BASE + '/quiz/' + id)
+    if(!res.ok) throw new Error('Failed')
+    const q = await res.json()
+    renderQuiz(q)
+  }catch(err){alert('Failed to fetch quiz')}
+}
+
+function renderQuiz(q){
+  const c = document.createElement('div')
+  c.className='card'
+  c.innerHTML = `<h3>${q.title||'Untitled'}</h3><div>${q.summary?'<p>'+q.summary+'</p>':''}</div>`
+  if(q.questions && q.questions.length){
+    const ol = document.createElement('ol')
+    q.questions.forEach((qq, i)=>{
+      const li = document.createElement('li')
+      li.className='question'
+      let opts = '<ul>'
+      qq.options.forEach((opt,idx)=>{
+        opts += `<li>${opt} ${idx===qq.correct_index?'<strong style="color:lightgreen">(correct)</strong>':''}</li>`
+      })
+      opts += '</ul>'
+      li.innerHTML = `<div style="font-weight:600">${qq.question}</div>${opts}${qq.explanation?'<div style="font-style:italic">'+qq.explanation+'</div>':''}`
+      ol.appendChild(li)
+    })
+    c.appendChild(ol)
+  }
+  if(q.keywords && q.keywords.length){
+    const k = document.createElement('div')
+    k.className='keywords'
+    k.textContent = 'Keywords: ' + q.keywords.join(', ')
+    c.appendChild(k)
+  }
+  el('result').innerHTML=''
+  el('result').appendChild(c)
+}
+
+el('gen').addEventListener('click', async ()=>{
+  el('status').style.display='none'; el('result').innerHTML=''
+  const url = el('url').value.trim()
+  if(!url){ el('status').innerText='Please enter a URL'; el('status').style.display='block'; return }
+  try{
+    el('gen').disabled=true
+    const res = await fetch(BASE + '/generate_quiz', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})})
+    if(!res.ok){ const txt = await res.text(); throw new Error(txt||res.statusText) }
+    const data = await res.json()
+    renderQuiz(data)
+  }catch(err){
+    el('status').innerText = 'Failed to fetch: ' + (err.message||err)
+    el('status').style.display='block'
+  }finally{ el('gen').disabled=false }
+})
+</script>
+</body>
+</html>
